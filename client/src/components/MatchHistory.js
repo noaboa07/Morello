@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import championImageMap from '../utility/championImageMap'; // Adjust the path as needed
 import './MatchHistory.css';
+import { useLanguage } from './LanguageContext'; // Import language context
+import translations from '../utility/translations'; // Import translations
 
 const MatchHistory = ({ puuid }) => {
   const [matches, setMatches] = useState([]);
+  const { language } = useLanguage(); // Get the current language
 
   useEffect(() => {
     const fetchMatchIds = async () => {
@@ -31,7 +34,7 @@ const MatchHistory = ({ puuid }) => {
 
   return (
     <div>
-      <h2>Match History</h2>
+      <h2>{translations[language].matchHistory}</h2> {/* Translated match history title */}
       <ul>
         {matches.map(match => {
           const participant = match.info.participants.find(p => p.puuid === puuid);
@@ -45,12 +48,12 @@ const MatchHistory = ({ puuid }) => {
                     className="champion-icon" 
                   />
                   <div className="match-info">
-                    <h3>Match ID: {match.metadata.matchId}</h3>
-                    <p>Duration: {match.info.gameDuration} seconds</p>
-                    <p>Winner: {match.info.teams[0].win ? 'Team 1' : 'Team 2'}</p>
-                    <p>Champion: {participant.championName}</p>
-                    <p>KDA: {participant.kills}/{participant.deaths}/{participant.assists}</p>
-                    <p>Game Type: {match.info.queueId === 420 ? 'Ranked' : 'Normal'}</p>
+                    <h3>{translations[language].matchId}: {match.metadata.matchId}</h3> {/* Translated match ID */}
+                    <p>{translations[language].duration}: {match.info.gameDuration} seconds</p> {/* Translated duration */}
+                    <p>{translations[language].winner}: {match.info.teams[0].win ? translations[language].team1 : translations[language].team2}</p> {/* Translated winner */}
+                    <p>{translations[language].champion}: {participant.championName}</p> {/* Translated champion */}
+                    <p>{translations[language].kda}: {participant.kills}/{participant.deaths}/{participant.assists}</p> {/* Translated KDA */}
+                    <p>{translations[language].gameType}: {match.info.queueId === 420 ? translations[language].ranked : translations[language].normal}</p> {/* Translated game type */}
                   </div>
                 </>
               )}

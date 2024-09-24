@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './SearchBar.css'; // Import the CSS file for styles
+import { useLanguage } from './LanguageContext';
+import translations from '../utility/translations';
 
 const SearchBar = () => {
   const [summonerName, setSummonerName] = useState('');
   const [summonerTag, setSummonerTag] = useState('');
   const navigate = useNavigate();
+  const { language } = useLanguage(); // Get the current language
 
   const handleSearch = async () => {
     // Normalize inputs to lowercase for case-insensitive search
@@ -28,18 +31,20 @@ const SearchBar = () => {
       <input
         type="text"
         className="search-input"
-        placeholder="Summoner Name"
+        placeholder={translations[language].searchForSummoner} // Translated placeholder
         value={summonerName}
         onChange={(e) => setSummonerName(e.target.value)}
       />
       <input
         type="text"
         className="search-input"
-        placeholder="Tag (e.g. #1234)"
+        placeholder={translations[language].tag} // Translated placeholder
         value={summonerTag}
         onChange={(e) => setSummonerTag(e.target.value)}
       />
-      <button className="search-button" onClick={handleSearch}>Search</button>
+      <button className="search-button" onClick={handleSearch}>
+        {translations[language].search} {/* Translated button text */}
+      </button>
     </div>
   );
 };

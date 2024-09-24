@@ -3,12 +3,15 @@ import { useParams } from 'react-router-dom';
 import MatchHistory from './MatchHistory';
 import axios from 'axios';
 import './ProfilePage.css'; // Import the CSS file
+import { useLanguage } from './LanguageContext';
+import translations from '../utility/translations';
 
 const ProfilePage = () => {
   const { puuid, name, tag } = useParams(); // Get the PUUID, name, and tag from the URL parameters
   const [summonerData, setSummonerData] = useState(null);
   const [error, setError] = useState('');
   const [lastRefreshed, setLastRefreshed] = useState(null); // State to store last refresh time
+  const { language } = useLanguage(); // Get the current language
 
   const fetchProfileData = useCallback(async () => {
     try {
@@ -18,9 +21,9 @@ const ProfilePage = () => {
       setError(''); // Clear error if successful
     } catch (err) {
       console.error('Error fetching summoner data:', err);
-      setError('Failed to fetch summoner data.');
+      setError(translations[language].fetchError); // Use translation for error message
     }
-  }, [puuid]);
+  }, [puuid, language]);
 
   useEffect(() => {
     fetchProfileData(); // Fetch data on initial load
@@ -33,7 +36,7 @@ const ProfilePage = () => {
 
   return (
     <div className="profile-container">
-      <h2>Profile</h2>
+      <h2>{translations[language].profilePageTitle}</h2> {/* Updated to use new key */}
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {summonerData && (
         <div>
@@ -43,16 +46,14 @@ const ProfilePage = () => {
             src={`https://ddragon.leagueoflegends.com/cdn/14.18.1/img/profileicon/${summonerData.profileIconId}.png`} 
             alt={`${name}'s Profile Icon`} 
           />
-          <p className="profile-level">Level: {summonerData.summonerLevel}</p>
+          <p className="profile-level">{translations[language].level}: {summonerData.summonerLevel}</p> {/* Updated */}
         </div>
       )}
-
-      <button className="refresh-button" onClick={refreshProfile}>Refresh Profile</button>
+      <button className="refresh-button" onClick={refreshProfile}>{translations[language].refreshProfile}</button> {/* Updated */}
       <p className="last-refreshed">
-        {lastRefreshed ? `Last Refreshed: ${lastRefreshed}` : 'Not refreshed yet'}
+        {lastRefreshed ? `${translations[language].lastRefreshed}: ${lastRefreshed}` : translations[language].notRefreshed} {/* Updated */}
       </p>
-
-      <MatchHistory puuid={puuid} /> {/* Match history will fetch its data based on updated PUUID */}
+      <MatchHistory puuid={puuid} />
     </div>
   );
 };
