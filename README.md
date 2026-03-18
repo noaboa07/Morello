@@ -28,4 +28,4 @@ This repository contains a technical sprint project focused on the architectural
 This project provided the foundational full-stack architecture I now apply to Master's level AI and Big Data systems.
 
 **Noah Russell** | Master of Science in AI (May 2026)
-[LinkedIn](https://www.linkedin.com/in/your-profile) | [Email](mailto:noahrussell2004@gmail.com)
+[LinkedIn](https://www.linkedin.com/in/noah-russell-61103128a/) | [Email](mailto:noahrussell2004@gmail.com)
