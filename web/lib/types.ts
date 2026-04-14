@@ -5,8 +5,8 @@ export interface RiotAccount {
 }
 
 export interface SummonerDTO {
-  id: string;
-  accountId: string;
+  id?: string;
+  accountId?: string;
   puuid: string;
   profileIconId: number;
   summonerLevel: number;
@@ -28,6 +28,13 @@ export interface ProfilePayload {
   summoner: SummonerDTO;
   ranked: RankedEntry[];
   platform: string;
+}
+
+export interface LiveGameSummary {
+  gameMode: string;
+  gameLength: number;
+  championName: string | null;
+  gameStartTime?: number;
 }
 
 export interface MatchParticipant {
@@ -56,7 +63,11 @@ export interface MatchParticipant {
   item5: number;
   item6: number;
   totalDamageDealtToChampions: number;
+  damageDealtToObjectives?: number;
+  turretKills?: number;
+  inhibitorKills?: number;
   teamPosition: string;
+  largestMultiKill: number;
 }
 
 export interface MatchDTO {

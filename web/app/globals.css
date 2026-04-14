@@ -41,8 +41,13 @@
         hsl(199 89% 56% / 0.08),
         transparent 50%
       ),
-      radial-gradient(circle at 80% 0%, hsl(280 89% 56% / 0.06), transparent 50%);
+      radial-gradient(circle at 80% 0%, hsl(185 82% 56% / 0.06), transparent 50%);
     min-height: 100vh;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.28);
+    color: hsl(var(--foreground));
   }
 }
 
@@ -67,5 +72,16 @@
     100% {
       transform: translateX(100%);
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

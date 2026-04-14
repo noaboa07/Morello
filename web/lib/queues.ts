@@ -16,3 +16,7 @@ export const QUEUE_NAMES: Record<number, string> = {
 export function queueName(id: number) {
   return QUEUE_NAMES[id] ?? "Custom";
 }
+
+export function isNormalQueue(id: number) {
+  return id === 400 || id === 430;
+}

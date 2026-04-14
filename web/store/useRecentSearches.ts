@@ -12,8 +12,10 @@ export interface RecentSearch {
 
 interface State {
   recents: RecentSearch[];
+  favorites: RecentSearch[];
   add: (s: Omit<RecentSearch, "searchedAt">) => void;
   remove: (gameName: string, tagLine: string) => void;
+  toggleFavorite: (s: Omit<RecentSearch, "searchedAt">) => void;
   clear: () => void;
 }
 
@@ -21,6 +23,7 @@ export const useRecentSearches = create<State>()(
   persist(
     (set) => ({
       recents: [],
+      favorites: [],
       add: (s) =>
         set((state) => {
           const filtered = state.recents.filter(
@@ -40,7 +43,32 @@ export const useRecentSearches = create<State>()(
               r.tagLine.toLowerCase() !== tagLine.toLowerCase()
           ),
         })),
-      clear: () => set({ recents: [] }),
+      toggleFavorite: (s) =>
+        set((state) => {
+          const existing = state.favorites.find(
+            (favorite) =>
+              favorite.platform.toLowerCase() === s.platform.toLowerCase() &&
+              favorite.gameName.toLowerCase() === s.gameName.toLowerCase() &&
+              favorite.tagLine.toLowerCase() === s.tagLine.toLowerCase()
+          );
+          if (existing) {
+            return {
+              favorites: state.favorites.filter((favorite) => favorite !== existing),
+            };
+          }
+
+          const filtered = state.favorites.filter(
+            (favorite) =>
+              favorite.platform.toLowerCase() !== s.platform.toLowerCase() ||
+              favorite.gameName.toLowerCase() !== s.gameName.toLowerCase() ||
+              favorite.tagLine.toLowerCase() !== s.tagLine.toLowerCase()
+          );
+
+          return {
+            favorites: [{ ...s, searchedAt: Date.now() }, ...filtered].slice(0, 8),
+          };
+        }),
+      clear: () => set({ recents: [], favorites: [] }),
     }),
     { name: "lol-tracker-recents" }
   )

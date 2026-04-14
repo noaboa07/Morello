@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getAccountByRiotId,
-  getRankedEntries,
+  getRankedEntriesByPuuid,
   getSummonerByPuuid,
   RiotError,
 } from "@/lib/riot";
@@ -17,8 +17,10 @@ export async function GET(
       decodeURIComponent(params.tag),
       platform
     );
-    const summoner = await getSummonerByPuuid(account.puuid, platform);
-    const ranked = await getRankedEntries(summoner.id, platform);
+    const [summoner, ranked] = await Promise.all([
+      getSummonerByPuuid(account.puuid, platform),
+      getRankedEntriesByPuuid(account.puuid, platform),
+    ]);
     return NextResponse.json({ account, summoner, ranked, platform });
   } catch (e) {
     if (e instanceof RiotError) {

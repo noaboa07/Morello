@@ -17,7 +17,43 @@ export async function getLatestVersion(): Promise<string> {
   return value;
 }
 
+let cachedItems: { map: Record<number, string>; expires: number } | null = null;
+let cachedSpells: { map: Record<number, { name: string; key: string }>; expires: number } | null =
+  null;
 let cachedChampions: { map: Record<string, string>; expires: number } | null = null;
+
+export async function getItemMap(): Promise<Record<number, string>> {
+  if (cachedItems && cachedItems.expires > Date.now()) return cachedItems.map;
+  const version = await getLatestVersion();
+  const res = await fetch(`${DDRAGON}/cdn/${version}/data/en_US/item.json`, {
+    next: { revalidate: 60 * 60 * 12 },
+  });
+  if (!res.ok) return {};
+  const json = await res.json();
+  const map: Record<number, string> = {};
+  for (const [id, item] of Object.entries<any>(json.data)) {
+    map[Number(id)] = item.name;
+  }
+  cachedItems = { map, expires: Date.now() + VERSION_TTL_MS };
+  return map;
+}
+
+export async function getSpellMap(): Promise<Record<number, { name: string; key: string }>> {
+  if (cachedSpells && cachedSpells.expires > Date.now()) return cachedSpells.map;
+  const version = await getLatestVersion();
+  const res = await fetch(`${DDRAGON}/cdn/${version}/data/en_US/summoner.json`, {
+    next: { revalidate: 60 * 60 * 12 },
+  });
+  if (!res.ok) return {};
+  const json = await res.json();
+  const map: Record<number, { name: string; key: string }> = {};
+  for (const spell of Object.values<any>(json.data)) {
+    map[Number(spell.key)] = { name: spell.name, key: spell.id };
+  }
+  cachedSpells = { map, expires: Date.now() + VERSION_TTL_MS };
+  return map;
+}
+
 
 export async function getChampionIdMap(): Promise<Record<string, string>> {
   if (cachedChampions && cachedChampions.expires > Date.now()) {

@@ -1,120 +1,180 @@
 # LoL.tracker
 
-A modern, production-quality League of Legends stat tracker inspired by op.gg and deeplol.gg. Search any Riot ID, view ranked profile, recent match history, champion stats, and live game detection — all built on a clean Next.js 14 App Router stack.
+A full-stack League of Legends stats and scouting app built with Next.js 14, TypeScript, and the Riot Games API.
 
-![stack](https://img.shields.io/badge/Next.js-14-black?logo=nextdotjs)
-![ts](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript)
-![tailwind](https://img.shields.io/badge/TailwindCSS-3-38BDF8?logo=tailwindcss)
-![rq](https://img.shields.io/badge/TanStack_Query-5-FF4154)
-![riot](https://img.shields.io/badge/Riot_API-v5-D32936)
+LoL.tracker started as a stats viewer, but I kept pushing it until it felt more like an actual product. It goes beyond just showing match data by adding live game detection, explainable performance insights, role and matchup analysis, summoner comparison, and a polished UI that is easy to demo.
 
-## Features
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3-38BDF8?logo=tailwindcss)
+![React Query](https://img.shields.io/badge/TanStack_Query-5-FF4154)
+![Riot API](https://img.shields.io/badge/Riot_API-v5-D32936)
 
-- **Riot ID search** — modern `GameName#TAG` lookup across 11 regions
-- **Profile dashboard** — level, profile icon, Solo/Duo and Flex rank cards with tier emblems, LP, win rate
-- **Match history** — expandable cards with KDA, CS/min, vision score, items, summoner spells, full team breakdown, color-coded win/loss
-- **Champion stats** — most-played champions with average KDA and win rate
-- **Live game detection** — auto-polls and surfaces a badge when the player is in an active game
-- **Recent searches** — persisted to `localStorage` via Zustand
-- **Production polish** — dark theme, gradient hero, animated skeletons, responsive mobile/desktop layout, smooth fade-ins
-- **Smart caching** — Next.js fetch revalidation + a 12h in-memory cache for Data Dragon version metadata, React Query for client-side caching and background refetching
-- **Graceful errors** — typed `RiotError` with friendly messages for 404 / 429 / 401 / 403
+## Overview
+
+This project was built to solve a simple problem: most League stat sites are either overloaded with clutter or just dump raw numbers on the page without much context.
+
+I wanted to build something that still had depth, but felt cleaner, smarter, and more interactive. The result is a summoner dashboard that lets you search players, explore recent match history, filter by champion and queue, compare players, and get higher-level insights about how someone has actually been performing.
+
+## What it does
+
+- search Riot IDs across supported League of Legends platforms
+- show summoner profile info, ranked data, LP, and live game status
+- display filterable match history by champion and queue
+- show a KDA trend sparkline and session insights from visible matches
+- expand match cards into a full 10-player breakdown
+- explain why a game went well or poorly using deterministic stat-based reasons
+- generate performance badges like MVP, Carry, and more
+- surface matchup insights, role/lane performance, win/loss splits, and game-length trends
+- track recent champion pool and champion mastery trends
+- compare two summoners side by side
+- support paginated match loading for deeper recent-history analysis
+- save recent searches and favorite profiles locally
+- provide a clean share/export-style profile snapshot panel
+- fail gracefully when live spectator data or Riot API requests are unavailable
+
+## Why this project is interesting
+
+This was a fun project because it was not just about wiring an API to a UI. A big part of the work was turning inconsistent third-party data into something useful and readable.
+
+A few things I focused on:
+- building around real Riot API constraints like rate limits and partial failures
+- making optional live-game data fail soft instead of breaking the page
+- deriving multiple analytics cards from the same visible match set so filters stay consistent
+- making the experience feel polished enough for a portfolio demo, not just technically functional
+
+## Screenshots
+
+### Landing page
+![Landing page](docs/screenshots/landing.png)
+*Landing page with guided Riot ID search, example lookups, and recent profile discovery.*
+
+### Summoner overview
+![Summoner overview](docs/screenshots/summoner-overview.png)
+*Summoner overview with rank data, recent-form hero card, compare entry, and shareable profile snapshot.*
+
+### Compare mode
+![Compare mode](docs/screenshots/compare-mode.png)
+*Side-by-side compare mode for recent win rate, KDA, champion pool, and queue tendencies.*
+
+### Match history and analytics
+![Match history](docs/screenshots/match-history.png)
+*Filterable recent match history with KDA trend, champion stats, role performance, and game-length analysis.*
+
+### Expanded match details
+![Expanded match card](docs/screenshots/match-card-expanded.png)
+*Expanded match view with explainable performance reasons, 10-player breakdown, and visual team comparison.*
 
 ## Tech Stack
 
 | Layer | Choice |
-|------|--------|
-| Framework | **Next.js 14** (App Router, RSC, Route Handlers) |
-| Language | **TypeScript** (strict) |
-| Styling | **Tailwind CSS** + custom dark theme tokens |
-| Components | **shadcn/ui** primitives (Button, Card, Input, Tabs, Skeleton, Badge) on Radix |
-| Data fetching | **TanStack Query v5** for client cache + background refetch |
-| State | **Zustand** with `persist` middleware for recent searches |
-| Icons | **lucide-react** |
-| Static assets | **Riot Data Dragon** + **Community Dragon** CDNs |
+| --- | --- |
+| Framework | Next.js 14 App Router |
+| Language | TypeScript with strict checking |
+| Styling | Tailwind CSS |
+| UI primitives | shadcn/ui + Radix UI |
+| Client caching | TanStack Query |
+| Client persistence | Zustand + persist |
+| Icons | lucide-react |
+| External data | Riot API + Data Dragon |
 
-## Project Structure
+## Architecture Overview
 
-```
+### App structure
+
+```text
 web/
-├── app/
-│   ├── api/
-│   │   ├── profile/[platform]/[name]/[tag]/route.ts
-│   │   ├── matches/[platform]/[puuid]/route.ts
-│   │   ├── live/[platform]/[puuid]/route.ts
-│   │   └── ddragon/version/route.ts
-│   ├── summoner/[platform]/[riotId]/
-│   │   ├── page.tsx          # RSC: profile + ranks
-│   │   ├── MatchHistory.tsx  # client: React Query match list
-│   │   └── not-found.tsx
-│   ├── layout.tsx
-│   ├── page.tsx              # landing + search
-│   └── globals.css
-├── components/
-│   ├── ui/                   # shadcn primitives
-│   ├── Navbar.tsx
-│   ├── SearchBar.tsx
-│   ├── ProfileHeader.tsx
-│   ├── RankCard.tsx
-│   ├── MatchCard.tsx
-│   ├── ChampionStats.tsx
-│   ├── LiveGameBadge.tsx
-│   ├── RecentSearches.tsx
-│   └── MatchHistorySkeleton.tsx
-├── lib/
-│   ├── riot.ts               # typed Riot API client
-│   ├── ddragon.ts            # Data Dragon helpers + cached version
-│   ├── regions.ts            # platform ↔ regional routing
-│   ├── queues.ts
-│   ├── types.ts
-│   └── utils.ts
-├── providers/QueryProvider.tsx
-└── store/useRecentSearches.ts
+  app/
+    page.tsx                         # landing page
+    layout.tsx                       # app shell + metadata
+    api/                             # lightweight server routes
+    summoner/[platform]/[riotId]/    # summoner experience
+  components/                        # reusable UI and product surfaces
+  lib/                               # Riot, Data Dragon, analytics, utilities
+  store/                             # persisted recent searches / favorites
+  providers/                         # React Query provider
 ```
 
-## Getting Started
+### Data flow
 
-```bash
-cd web
-cp .env.local.example .env.local
-# add your Riot API key to .env.local
-npm install
-npm run dev
-```
-
-Then open [http://localhost:3000](http://localhost:3000) and search a Riot ID like `Faker#KR1`.
-
-### Environment
-
-| Variable | Description |
-|---------|-------------|
-| `RIOT_API_KEY` | Your key from [developer.riotgames.com](https://developer.riotgames.com) |
+1. The landing page captures a Riot ID in the form `GameName#TAG`.
+2. The summoner route loads account, summoner, ranked, live game summary, and initial matches.
+3. The match history client component handles local filters, visible-match analytics, and pagination.
+4. Optional live game polling refreshes client-side without breaking the rest of the page when spectator data fails.
+5. Shared analytics utilities derive the profile overview, session insights, scouting report, matchup analysis, role performance, and compare summaries from the same visible match set.
 
 ## How It Works
 
-1. The search bar parses `GameName#TAG`, picks a platform, and routes to `/summoner/[platform]/[name-tag]`.
-2. The summoner page is a **React Server Component** that calls the Riot API directly through `lib/riot.ts` — account → summoner → ranked entries — so the initial paint already has profile data.
-3. Match history hydrates client-side via **React Query**, hitting `/api/matches/[platform]/[puuid]`, which fans out match-detail fetches in parallel and is cached for 24h server-side.
-4. The Live Game badge polls `/api/live/[platform]/[puuid]` every 60s through React Query.
-5. Data Dragon version data is fetched once and cached in-memory for 12h, so champion / item / spell icons all resolve to the latest patch URLs without re-fetching.
+### Server-side
 
-## Rate Limit & Error Handling
+- `lib/riot.ts` wraps Riot API calls with typed errors and graceful handling for optional spectator data.
+- route handlers under `web/app/api` keep client requests small and consistent.
+- Data Dragon helpers resolve the latest version and static asset URLs for champions, items, and spells.
 
-Riot API errors are wrapped in a typed `RiotError` and surfaced to the UI with friendly copy:
+### Client-side
 
-- `404` → routed to a clean not-found page
-- `429` → "Rate limit hit. Try again in a moment."
-- `401 / 403` → "Invalid or expired Riot API key."
+- `MatchHistory.tsx` is the main orchestration layer for filters, visible-match derivations, and incremental match loading.
+- `RecentSearches` and favorites are stored locally for quick profile revisit.
+- `CompareSummonersCard` reuses the same summary derivations for side-by-side analysis.
 
-## Legacy
+## Setup
 
-This project began in 2024 as a full-stack Riot Games API proof of concept (CRA + Express) — exploring secure API integration, asynchronous orchestration of multi-stage data fetches, payload optimization, and rate limit handling. That original prototype still lives under `client/` and `server/`. The rewrite under `web/` evolves it into a modern Next.js 14 App Router stack with the production-quality features above.
+### 1. Install dependencies
+
+```bash
+cd web
+npm install
+```
+
+### 2. Configure environment variables
+
+Create `web/.env.local`:
+
+```bash
+RIOT_API_KEY=your_riot_api_key_here
+```
+
+### 3. Run the app
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Environment Variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `RIOT_API_KEY` | Yes | Riot developer API key used for account, summoner, ranked, match, and spectator requests |
+
+## Deployment Notes
+
+- The app assumes `RIOT_API_KEY` is available on the server at runtime.
+- Spectator data is treated as optional and fails soft.
+- Data quality depends on Riot API availability and rate limits.
+- For production deployment, use a host that supports Next.js 14 App Router well, such as Vercel.
+
+## Known Limitations
+
+- Some role and matchup inference is approximate because the app does not currently use timeline data.
+- Live game polling depends on spectator availability and Riot API health.
+- Favorites and recent searches are browser-local, not account-synced.
+- Historical insights are only as broad as the currently loaded match set.
+
+## Future Improvements
+
+- timeline-aware lane and objective analysis
+- image-based export snapshots
+- authenticated cloud-synced favorites
+- patch-aware historical context and champion metadata caching
 
 ## License
 
-MIT — see [LICENSE](./LICENSE). Not endorsed by Riot Games. League of Legends is a trademark of Riot Games, Inc.
+MIT. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. This project is not endorsed by Riot Games.
 
----
+## Contact
 
-**Noah Russell** — Master of Science in AI (May 2026)
-[LinkedIn](https://www.linkedin.com/in/noah-russell-61103128a/) · [Email](mailto:noahrussell2004@gmail.com)
+Noah Russell  
+[LinkedIn](https://www.linkedin.com/in/noah-russell-61103128a/)  
+[Email](mailto:noahrussell2004@gmail.com)

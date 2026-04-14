@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { championSquareUrl } from "@/lib/ddragon";
-import { kdaRatio } from "@/lib/utils";
+import { kdaRatio, cn } from "@/lib/utils";
+import { X } from "lucide-react";
 import type { MatchDTO } from "@/lib/types";
 
 interface Stat {
@@ -17,10 +20,14 @@ export function ChampionStats({
   matches,
   puuid,
   version,
+  selected,
+  onSelect,
 }: {
   matches: MatchDTO[];
   puuid: string;
   version: string;
+  selected: string | null;
+  onSelect: (champion: string | null) => void;
 }) {
   const map = new Map<string, Stat>();
   for (const m of matches) {
@@ -45,20 +52,38 @@ export function ChampionStats({
 
   const stats = Array.from(map.values())
     .sort((a, b) => b.games - a.games)
-    .slice(0, 5);
+    .slice(0, 7);
 
   if (stats.length === 0) return null;
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle>Champion Stats</CardTitle>
+        {selected && (
+          <button
+            onClick={() => onSelect(null)}
+            className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <X className="h-3 w-3" /> Clear filter
+          </button>
+        )}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-1">
         {stats.map((s) => {
           const wr = Math.round((s.wins / s.games) * 100);
+          const isActive = selected === s.championName;
           return (
-            <div key={s.championName} className="flex items-center gap-3">
+            <button
+              key={s.championName}
+              onClick={() => onSelect(isActive ? null : s.championName)}
+              className={cn(
+                "w-full flex items-center gap-3 rounded-lg p-2 transition-all text-left",
+                isActive
+                  ? "bg-primary/15 ring-1 ring-primary/40"
+                  : "hover:bg-secondary/50"
+              )}
+            >
               <Image
                 src={championSquareUrl(s.championName, version)}
                 alt={s.championName}
@@ -68,24 +93,27 @@ export function ChampionStats({
                 className="rounded-md"
               />
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{s.championName}</div>
+                <div className="font-medium truncate text-sm">
+                  {s.championName}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {kdaRatio(s.k / s.games, s.d / s.games, s.a / s.games)} KDA
                 </div>
               </div>
               <div className="text-right">
                 <div
-                  className={`text-sm font-semibold ${
+                  className={cn(
+                    "text-sm font-semibold",
                     wr >= 50 ? "text-win" : "text-loss"
-                  }`}
+                  )}
                 >
                   {wr}%
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {s.games} games
+                <div className="text-[10px] text-muted-foreground">
+                  {s.games}g
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </CardContent>
