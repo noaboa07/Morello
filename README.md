@@ -66,6 +66,10 @@ A few things I focused on:
 
 *Expanded match view with explainable performance reasons, 10-player breakdown, and visual team comparison.*
 
+## Live Demo
+
+[View the app on Vercel](https://lol-tracker-pink.vercel.app/)
+
 ## Tech Stack
 
 | Layer | Choice |
