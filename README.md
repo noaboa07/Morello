@@ -46,23 +46,23 @@ A few things I focused on:
 ## Screenshots
 
 ### Landing page
-![Landing page](docs/screenshots/landing.png)
+![Landing page](docs/landing.png)
 *Landing page with guided Riot ID search, example lookups, and recent profile discovery.*
 
 ### Summoner overview
-![Summoner overview](docs/screenshots/summoner-overview.png)
+![Summoner overview](docs/summoner-overview.png)
 *Summoner overview with rank data, recent-form hero card, compare entry, and shareable profile snapshot.*
 
 ### Compare mode
-![Compare mode](docs/screenshots/compare-mode.png)
+![Compare mode](docs/compare-mode.png)
 *Side-by-side compare mode for recent win rate, KDA, champion pool, and queue tendencies.*
 
 ### Match history and analytics
-![Match history](docs/screenshots/match-history.png)
+![Match history](docs/match-history.png)
 *Filterable recent match history with KDA trend, champion stats, role performance, and game-length analysis.*
 
 ### Expanded match details
-![Expanded match card](docs/screenshots/match-card-expanded.png)
+![Expanded match card](docs/match-card-expanded.png)
 *Expanded match view with explainable performance reasons, 10-player breakdown, and visual team comparison.*
 
 ## Tech Stack
