@@ -55,6 +55,7 @@ A few things I focused on:
 
 ### Compare mode
 ![Compare mode](docs/compare-mode.png)
+
 *Side-by-side compare mode for recent win rate, KDA, champion pool, and queue tendencies.*
 
 ### Match history and analytics
