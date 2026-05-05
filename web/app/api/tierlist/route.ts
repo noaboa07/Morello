@@ -2,16 +2,15 @@ import { NextResponse } from "next/server";
 import { getChampionIdMap, getLatestVersion } from "@/lib/ddragon";
 import type { ChampionTierEntry, TierLabel, TierListPayload } from "@/lib/types";
 
-// ── Lolalytics CDN ────────────────────────────────────────────────────────────
+// ── Lolalytics ────────────────────────────────────────────────────────────────
 // Aggregates win/pick/ban rates from millions of Plat+ games per patch.
 // Fallback: if Lolalytics is unreachable or returns unexpected shape, the route
 // falls back to Meraki (pick-rate only, win/ban rates will be 0).
 //
-// If Lolalytics continues to be unreachable, next options to try:
-//   - u.gg CDN:    https://stats2.u.gg/lol/1.5/<patch>/ranked_solo_5x5/<tier>/1.json
-//   - CDragon:     https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-champion-statistics/
+// axe.lolalytics.com blocks server-side requests; using the main domain endpoint.
+// If this also fails, we retry without custom headers (some CDNs flag extra headers).
 const LOLALYTICS_URL =
-  "https://axe.lolalytics.com/tierlist/1/?lane=default&tier=plat_plus&patch=current&region=all";
+  "https://lolalytics.com/api/tierlist/?patch=current&tier=plat_plus&region=all";
 
 const MERAKI_URL =
   "https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/championrates.json";
@@ -75,65 +74,95 @@ function isLolalyticsEntry(v: unknown): v is LolalyticsEntry {
 async function fetchLolalyticsEntries(
   championIdMap: Record<string, string>
 ): Promise<{ entries: ChampionTierEntry[]; patch: string } | null> {
-  try {
-    const res = await fetch(LOLALYTICS_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": "https://lolalytics.com/",
-        "Accept": "application/json",
-      },
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("[tierlist] Lolalytics fetch failed:", res.status, LOLALYTICS_URL);
+  const BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+    "Referer": "https://lolalytics.com/",
+    "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
+  };
+
+  // Attempt 1: with browser-like headers. Attempt 2: no headers (some CDNs flag extra headers).
+  const attempts: Array<Record<string, string> | undefined> = [BROWSER_HEADERS, undefined];
+
+  for (const headers of attempts) {
+    try {
+      const res = await fetch(LOLALYTICS_URL, {
+        ...(headers ? { headers } : {}),
+        next: { revalidate: 3600 },
+      });
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.error(
+          `[tierlist] Lolalytics ${headers ? "with" : "without"} headers → ${res.status}:`,
+          body.slice(0, 500)
+        );
+        continue;
       }
-      return null;
-    }
 
-    const data: unknown = await res.json();
-    if (typeof data !== "object" || data === null) return null;
+      const data: unknown = await res.json();
+      if (typeof data !== "object" || data === null) continue;
 
-    const raw = data as Record<string, unknown>;
-    const cid = raw.cid;
-    if (typeof cid !== "object" || cid === null) return null;
+      const raw = data as Record<string, unknown>;
 
-    const patch = typeof raw.patch === "string" ? raw.patch : "Latest";
-    const entries: ChampionTierEntry[] = [];
-
-    for (const [champKey, champData] of Object.entries(
-      cid as Record<string, unknown>
-    )) {
-      const championId = championIdMap[champKey];
-      if (!championId) continue;
-
-      const roleEntries: LolalyticsEntry[] = Array.isArray(champData)
-        ? champData.filter(isLolalyticsEntry)
-        : isLolalyticsEntry(champData)
-          ? [champData]
-          : [];
-
-      for (const entry of roleEntries) {
-        if (entry.n < 100) continue; // skip low-sample noise
-        const role = entry.lane != null ? LOLALYTICS_LANE_MAP[entry.lane] : null;
-        if (!role) continue;
-
-        entries.push({
-          championId,
-          role,
-          tier: assignTierByWinRate(entry.wr),
-          winRate: Math.round(entry.wr * 100) / 100,
-          pickRate: Math.round(entry.pr * 100) / 100,
-          banRate: Math.round(entry.br * 100) / 100,
-          games: entry.n,
-        });
+      // Log top-level shape + first entry for Vercel diagnostics
+      console.log("[tierlist] Lolalytics top-level keys:", Object.keys(raw).slice(0, 15));
+      const champContainer: Record<string, unknown> | null =
+        (raw.cid as Record<string, unknown> | undefined) ??
+        (raw.data as Record<string, unknown> | undefined) ??
+        (raw.champions as Record<string, unknown> | undefined) ??
+        null;
+      if (champContainer) {
+        const firstKey = Object.keys(champContainer)[0];
+        if (firstKey) {
+          console.log(
+            `[tierlist] First champion entry [${firstKey}]:`,
+            JSON.stringify(champContainer[firstKey]).slice(0, 300)
+          );
+        }
+      } else {
+        console.error("[tierlist] No champion container found. Raw keys:", Object.keys(raw));
+        continue;
       }
-    }
 
-    return entries.length > 0 ? { entries, patch } : null;
-  } catch {
-    return null;
+      const patch = typeof raw.patch === "string" ? raw.patch : "Latest";
+      const entries: ChampionTierEntry[] = [];
+
+      for (const [champKey, champData] of Object.entries(champContainer)) {
+        const championId = championIdMap[champKey];
+        if (!championId) continue;
+
+        const roleEntries: LolalyticsEntry[] = Array.isArray(champData)
+          ? champData.filter(isLolalyticsEntry)
+          : isLolalyticsEntry(champData)
+            ? [champData]
+            : [];
+
+        for (const entry of roleEntries) {
+          if (entry.n < 100) continue;
+          const role = entry.lane != null ? LOLALYTICS_LANE_MAP[entry.lane] : null;
+          if (!role) continue;
+
+          entries.push({
+            championId,
+            role,
+            tier: assignTierByWinRate(entry.wr),
+            winRate: Math.round(entry.wr * 100) / 100,
+            pickRate: Math.round(entry.pr * 100) / 100,
+            banRate: Math.round(entry.br * 100) / 100,
+            games: entry.n,
+          });
+        }
+      }
+
+      if (entries.length > 0) return { entries, patch };
+      console.error("[tierlist] Lolalytics parsed 0 entries — shape mismatch.");
+    } catch (err) {
+      console.error("[tierlist] Lolalytics exception:", err instanceof Error ? err.message : String(err));
+    }
   }
+
+  return null;
 }
 
 // ── Meraki fallback (pick-rate only, no win/ban rate) ─────────────────────────
