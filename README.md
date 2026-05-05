@@ -26,6 +26,9 @@ Most stat sites bury you in numbers. Morello is opinionated about what matters: 
 
 ## Features
 
+### Landing Page
+- **Live Challenger Games** — polls NA Challenger ladder on each page load, surfaces up to 3 players currently in-game with champion icon (CDragon), LP, and elapsed time; clicking navigates to their summoner profile
+
 ### Summoner Profiles
 - **Search any Riot ID** across all supported League of Legends platforms (NA, EUW, KR, and more)
 - **Ranked overview** — Solo/Duo and Flex rank, LP, win rate, and recent form at a glance
@@ -57,11 +60,12 @@ Each match card expands into five lazy-loaded tabs:
 - **Role performance** — win rate, KDA, and CS/min per role (minimum 2 games)
 - **Game-length buckets** — performance split across short (<25 min), medium (25–35 min), and long (>35 min) games
 - **Champion mastery trends** — KDA direction (improving / cooling off / stable) per champion over visible matches
+- **Champion Win Rate Trend** — per-champion stats table (top 5 by games played, min 2): games, WR%, KDA, CS/min, vision score
 - **Scouting report** — deterministic coaching observations derived from match patterns
 - **Performance badges** — MVP, Carry, Vision Leader, Objective Threat, and more, derived from match data relative to the full lobby
 
 ### High-Elo Coaching Widgets (≥5 matches)
-- **Death Review** — identifies peak-death game phase (early/mid/late) from game-length bucket data and generates a deterministic coaching callout
+- **Death Review** — phase breakdown bars (Early <20m / Mid 20–30m / Late >30m) showing percentage of deaths by game phase; peak phase and deterministic coaching callout
 - **Consistency Score** — 0–100 score derived from KDA, CS/min, and vision score variance (coefficient of variation); bars show stability per metric; interpreted as consistent, moderate, or streaky
 - **Win Condition Fingerprint** — identifies which stat thresholds (KDA > 3.0, deaths < 3, CS/min > 6, kill participation > 60%, etc.) correlate most strongly with wins and losses across the visible match window
 
@@ -98,13 +102,14 @@ Each match card expands into five lazy-loaded tabs:
 ```
 web/
   app/
-    page.tsx                          # landing — search, examples, feature overview
+    page.tsx                          # landing — search, examples, live challenger feed, feature overview
     layout.tsx                        # app shell, metadata, Inter font, Navbar
     globals.css                       # design tokens (CSS variables), utility classes
     api/
       profile/[platform]/[name]/[tag] # account + summoner + ranked entries
       matches/[platform]/[puuid]      # match IDs and full match detail (paginated)
-      matches/[matchId]/timeline      # Riot timeline endpoint proxy (per-frame gold/XP/CS/damage)
+      matches/[platform]/timeline      # Riot timeline endpoint proxy (per-frame gold/XP/CS/damage)
+      challenger/                      # Challenger ladder live-game polling → ChallengerLiveGame[]
       live/[platform]/[puuid]         # spectator polling route
       ddragon/version/                # Data Dragon latest version resolution
       ddragon/runes/                  # runesReforged.json proxy → RuneTree[]
@@ -117,9 +122,10 @@ web/
       loading.tsx                     # streaming skeleton
       not-found.tsx                   # 404 handling
       MatchHistory.tsx                # client component — filters, analytics, pagination
-  components/                         # 32 product surfaces and UI primitives
+  components/                         # 35 product surfaces and UI primitives
   lib/
     riot.ts                           # Riot API wrapper (RiotError, platform/regional routing)
+    challenger.ts                     # server-only helper — challenger ladder + live-game polling
     ddragon.ts                        # Data Dragon asset URL builders, 12-hour module cache
     match-insights.ts                 # all analytics derivations (pure functions, no async)
     badges.ts                         # getMatchBadges, getMatchAnalysis, damageShareForTeam
@@ -153,7 +159,8 @@ All functions are pure: `(matches: MatchDTO[], puuid: string) → result`. No as
 | `deriveWinLossComparison` | Side-by-side metric diff across wins and losses |
 | `deriveGameLengthBuckets` | Performance split across short / medium / long games |
 | `deriveChampionTrends` | KDA direction per champion over visible matches |
-| `deriveDeathReview` | Peak-death phase inference + coaching callout |
+| `deriveDeathReview` | Peak-death phase + per-phase % breakdown (Early/Mid/Late) + coaching callout |
+| `deriveChampionDetailedPool` | Top 5 champions by games: WR%, KDA, CS/min, vision score |
 | `deriveConsistencyScore` | 0–100 score from KDA / CS / vision coefficient of variation |
 | `deriveWinConditionFingerprint` | Stat thresholds that correlate with wins/losses |
 | `deriveProfileOverview` | SSR summary line for the profile header |

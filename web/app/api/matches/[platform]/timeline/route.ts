@@ -7,9 +7,9 @@ function platformFromMatchId(matchId: string): string {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { matchId: string } }
+  { params }: { params: { platform: string } }
 ) {
-  const matchId = decodeURIComponent(params.matchId);
+  const matchId = decodeURIComponent(params.platform);
   const platform =
     request.nextUrl.searchParams.get("platform") ?? platformFromMatchId(matchId);
 
