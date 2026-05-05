@@ -76,8 +76,20 @@ async function fetchLolalyticsEntries(
   championIdMap: Record<string, string>
 ): Promise<{ entries: ChampionTierEntry[]; patch: string } | null> {
   try {
-    const res = await fetch(LOLALYTICS_URL, { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
+    const res = await fetch(LOLALYTICS_URL, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://lolalytics.com/",
+        "Accept": "application/json",
+      },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[tierlist] Lolalytics fetch failed:", res.status, LOLALYTICS_URL);
+      }
+      return null;
+    }
 
     const data: unknown = await res.json();
     if (typeof data !== "object" || data === null) return null;
@@ -188,6 +200,7 @@ export async function GET(): Promise<NextResponse> {
         patch: lolalytics.patch,
         version,
         entries: lolalytics.entries,
+        source: "lolalytics",
       };
       return NextResponse.json(payload);
     }
@@ -199,6 +212,7 @@ export async function GET(): Promise<NextResponse> {
         patch: meraki.patch,
         version,
         entries: meraki.entries,
+        source: "meraki",
       };
       return NextResponse.json(payload);
     }

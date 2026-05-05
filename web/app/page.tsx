@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { RecentSearches } from "@/components/RecentSearches";
 import { SearchBar } from "@/components/SearchBar";
+import { fetchChallengerFeed } from "@/lib/challenger";
+import { formatDuration } from "@/lib/utils";
+import type { ChallengerLiveGame } from "@/lib/types";
 
 const EXAMPLE_SEARCHES = [
   { label: "Hide on bush", value: "Hide on bush#KR1", platform: "kr" },
@@ -15,7 +18,9 @@ export const metadata: Metadata = {
     "Search any Riot ID to explore live games, recent match insights, ranked performance, and League of Legends scouting tools.",
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const liveGames = await fetchChallengerFeed();
+
   return (
     <div className="mx-auto max-w-2xl space-y-14 pt-12 sm:pt-20">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -59,6 +64,18 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* ── Live Challenger Games ────────────────────────────────────────── */}
+      {liveGames.length > 0 && (
+        <section className="space-y-3">
+          <div className="eyebrow">Live Challenger Games</div>
+          <div className="space-y-2">
+            {liveGames.map((game, i) => (
+              <ChallengerGameCard key={i} game={game} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ── What the app surfaces ─────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="eyebrow">What you'll learn</div>
@@ -77,6 +94,32 @@ export default function HomePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function ChallengerGameCard({ game }: { game: ChallengerLiveGame }) {
+  const href = `/summoner/${game.platform}/${encodeURIComponent(game.gameName ?? game.summonerName)}-${encodeURIComponent(game.tagLine ?? "NA1")}`;
+  const elapsed = formatDuration(game.gameLength);
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-3 hover:bg-secondary/20 transition-colors"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${game.championId}.png`}
+        alt="champion"
+        className="h-10 w-10 rounded-full border border-border/40 object-cover"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium truncate">{game.gameName ?? game.summonerName}</div>
+        <div className="text-xs text-muted-foreground">{elapsed} elapsed</div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="text-xs font-mono font-semibold text-yellow-300/80">{game.lp.toLocaleString()} LP</div>
+        <div className="text-[10px] text-muted-foreground uppercase">{game.gameMode}</div>
+      </div>
+    </Link>
   );
 }
 

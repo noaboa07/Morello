@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { ChampionMatchupInsightsCard } from "@/components/ChampionMatchupInsightsCard";
 import { ChampionMasteryTrendCard } from "@/components/ChampionMasteryTrendCard";
+import { ChampionWinRateTrendCard } from "@/components/ChampionWinRateTrendCard";
 import { ChampionStats } from "@/components/ChampionStats";
 import { CompareSummonersCard } from "@/components/CompareSummonersCard";
 import { ConsistencyScoreCard } from "@/components/ConsistencyScoreCard";
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   QUEUE_FILTER_OPTIONS,
+  deriveChampionDetailedPool,
   deriveChampionTrends,
   deriveConsistencyScore,
   deriveDeathReview,
@@ -103,6 +105,10 @@ export function MatchHistory({
   );
   const championTrends = useMemo(
     () => deriveChampionTrends(visibleMatches, puuid),
+    [visibleMatches, puuid]
+  );
+  const championDetailedPool = useMemo(
+    () => deriveChampionDetailedPool(visibleMatches, puuid),
     [visibleMatches, puuid]
   );
   const deathReview = useMemo(
@@ -211,6 +217,7 @@ export function MatchHistory({
                     key={match.metadata.matchId}
                     match={match}
                     puuid={puuid}
+                    platform={platform}
                     version={version}
                     spellMap={spellMap}
                     itemMap={itemMap}
@@ -265,6 +272,7 @@ export function MatchHistory({
           <ChampionMasteryTrendCard champions={championTrends} version={version} />
           <RecentChampionPoolCard champions={insights.championPool} version={version} />
         </div>
+        <ChampionWinRateTrendCard pool={championDetailedPool} version={version} />
         <ScoutingReportCard insights={scoutingReport} />
 
         {/* High-elo coaching widgets — require ≥5 matches to derive signal */}

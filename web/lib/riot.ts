@@ -120,6 +120,14 @@ export async function getMatch(matchId: string, platform: string) {
   );
 }
 
+export async function getMatchTimeline(matchId: string, platform: string) {
+  const regional = regionalFor(platform);
+  return riotFetch(
+    `https://${regional}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline`,
+    86400
+  );
+}
+
 export async function getActiveGame(encryptedSummonerId: string, platform: string) {
   if (!encryptedSummonerId) {
     logRiot("warn", "[riot] spectator skipped: missing encrypted summoner id");
@@ -141,4 +149,11 @@ export async function getActiveGame(encryptedSummonerId: string, platform: strin
     }
     throw e;
   }
+}
+
+export async function getChallengerLeague(queue: string, platform: string) {
+  return riotFetch(
+    `https://${platform}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/${queue}`,
+    60
+  );
 }

@@ -41,14 +41,15 @@ Most stat sites bury you in numbers. Morello is opinionated about what matters: 
 - **Paginated loading** — load deeper match history beyond the initial batch
 
 ### Match Cards (tabbed detail view)
-Each match card expands into four lazy-loaded tabs:
+Each match card expands into five lazy-loaded tabs:
 
 | Tab | Content |
 |-----|---------|
-| **Post Game** | Coaching analysis (what hurt / what held up / focus note) + 10-player team breakdown with relative damage bars |
-| **Performance** | CS/min, deaths, kill participation, damage share, vision score — colour-coded green/yellow/red against the player's own recent average |
-| **Item Build** | Final build and trinket with DDragon icons and hover names. Purchase order is a roadmap item pending Riot timeline endpoint integration. |
-| **Metrics** | Full stat table — damage dealt/taken, healing, shielding, CC time, turret damage, vision score, wards placed/killed — player vs team average |
+| **Post Game** | Coaching analysis + 10-player u.gg-style table: carry score, grade badge (S/GM/M/C), role pill, damage bars scaled to game max, gold, CS/min, wards, items |
+| **Performance** | All 10 players in a sortable table (click any column header). Columns: kills, KDA, damage, gold, wards, CS/min. Laning Phase section shows gold and CS differential vs lane opponent at 10 and 15 minutes. Coaching callout pinned above based on player averages. |
+| **Item Build** | Rune page (primary tree with all slots + selected runes, secondary tree with 2 selected runes, stat shards) fetched from DDragon on first click, followed by final build items |
+| **Timeline** | Kill feed + objective/vision event log with filter pills (Kills · Objectives · Vision), plus a minimap with colour-coded event dots plotted from Riot coordinates |
+| **Metrics** | Time-series line charts (Gold · XP · CS · Damage) for all 10 players via recharts; champion icon toggles show/hide individual lines; Team Gold AreaChart (5th sub-tab) shows blue/red gold lead over time; falls back to flat stat table when timeline unavailable |
 
 ### Analytics
 - **Win vs loss breakdown** — side-by-side stat comparison showing how KDA, CS, vision, and objective control shift between outcomes
@@ -84,8 +85,9 @@ Each match card expands into four lazy-loaded tabs:
 | State / persistence | Zustand + persist | Recent searches and favorites in localStorage |
 | Icons | lucide-react | Consistent icon set |
 | Typeface | Inter (next/font/google) | Zero layout shift, variable font |
-| Match & ranked data | Riot Games API v5 | Account lookup, summoner, ranked, match history, spectator |
-| Static assets | Data Dragon + Community Dragon | Champion icons, item icons, spell icons, rank emblems |
+| Charts | recharts | Time-series line charts in the Metrics tab |
+| Match & ranked data | Riot Games API v5 | Account lookup, summoner, ranked, match history, spectator, match timeline |
+| Static assets | Data Dragon + Community Dragon | Champion icons, item icons, spell icons, rank emblems, rune icons, minimap |
 | Tier list (primary) | Lolalytics CDN (`axe.lolalytics.com`) | Win/pick/ban rates, Plat+, no API key required, 1-hour cache |
 | Tier list (fallback) | Meraki Analytics CDN | Pick-rate only; activates when Lolalytics is unreachable |
 
@@ -102,8 +104,10 @@ web/
     api/
       profile/[platform]/[name]/[tag] # account + summoner + ranked entries
       matches/[platform]/[puuid]      # match IDs and full match detail (paginated)
+      matches/[matchId]/timeline      # Riot timeline endpoint proxy (per-frame gold/XP/CS/damage)
       live/[platform]/[puuid]         # spectator polling route
       ddragon/version/                # Data Dragon latest version resolution
+      ddragon/runes/                  # runesReforged.json proxy → RuneTree[]
       tierlist/                       # Lolalytics → Meraki fallback → ChampionTierEntry[]
     tierlist/
       page.tsx                        # tier list SSR entry point
@@ -211,7 +215,7 @@ Deploy to any platform with Next.js 14 App Router support. [Vercel](https://verc
 
 ## Known Limitations
 
-- **Timeline data** — lane phase analysis (CS differentials at 15, per-death timestamps, item purchase order) requires the Riot timeline endpoint, which is a separate fetch not currently in the pipeline. The Item Build tab shows final build only; purchase sequence is a roadmap item.
+- **Item purchase order** — the timeline endpoint is integrated but the Riot API does not expose per-item timestamps at the match level; the Item Build tab shows final build only.
 - **Live game polling** — depends on Riot's spectator API availability and account-level access; fails soft when unavailable.
 - **Analytics scope** — all insights are scoped to the loaded match window, not a player's full history.
 - **Riot API key** — development keys from Riot expire every 24 hours and have strict rate limits; production use requires a production key application.
@@ -221,7 +225,6 @@ Deploy to any platform with Next.js 14 App Router support. [Vercel](https://verc
 
 ## Roadmap
 
-- Timeline-aware lane phase analysis (CS differentials, item purchase sequence, per-death events)
 - Patch-aware context — flag performance changes that coincide with balance patches
 - Image-based profile export snapshots
 - Cloud-synced favorites with optional account authentication

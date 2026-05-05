@@ -617,6 +617,7 @@ export interface DeathReviewSummary {
   peakPhase: "early" | "mid" | "late";
   peakPhaseLabel: string;
   patternLine: string;
+  phaseBreakdown: { early: number; mid: number; late: number };
 }
 
 export interface ConsistencyScore {
@@ -681,7 +682,22 @@ export function deriveDeathReview(matches: MatchDTO[], puuid: string): DeathRevi
     patternLine += ` — strong death avoidance; maintain discipline in ${peak.label}.`;
   }
 
-  return { totalDeaths, avgDeathsPerGame, peakPhase: peak.key, peakPhaseLabel: peak.label, patternLine };
+  const EARLY_MAX = 20 * 60;
+  const MID_MAX = 30 * 60;
+  let earlyDeaths = 0, midDeaths = 0, lateDeaths = 0;
+  for (const match of matches) {
+    const p = getMyParticipant(match, puuid);
+    if (!p) continue;
+    const dur = match.info.gameDuration;
+    if (dur < EARLY_MAX) earlyDeaths += p.deaths;
+    else if (dur < MID_MAX) midDeaths += p.deaths;
+    else lateDeaths += p.deaths;
+  }
+  const totalPhaseDeaths = earlyDeaths + midDeaths + lateDeaths;
+  const pct = (n: number) => totalPhaseDeaths > 0 ? Math.round((n / totalPhaseDeaths) * 100) : 0;
+  const phaseBreakdown = { early: pct(earlyDeaths), mid: pct(midDeaths), late: pct(lateDeaths) };
+
+  return { totalDeaths, avgDeathsPerGame, peakPhase: peak.key, peakPhaseLabel: peak.label, patternLine, phaseBreakdown };
 }
 
 export function deriveConsistencyScore(matches: MatchDTO[], puuid: string): ConsistencyScore | null {
@@ -903,4 +919,54 @@ function deriveStatusLabel({
   if (streakType === "loss" && streakCount >= 3 && winRate < 45) return "Rough patch";
   if (winRate >= 55 || averageKda >= 3.5) return "Strong recent form";
   return "Finding rhythm";
+}
+
+export interface ChampionDetailedEntry {
+  championName: string;
+  games: number;
+  wins: number;
+  winRate: number;
+  averageKda: number;
+  avgCsPerMin: number;
+  avgVisionScore: number;
+}
+
+export function deriveChampionDetailedPool(
+  matches: MatchDTO[],
+  puuid: string
+): ChampionDetailedEntry[] {
+  const map = new Map<string, {
+    games: number; wins: number; kdaSum: number;
+    csMinSum: number; visionSum: number;
+  }>();
+
+  for (const match of matches) {
+    const p = getMyParticipant(match, puuid);
+    if (!p) continue;
+    const cs = p.totalMinionsKilled + (p.neutralMinionsKilled ?? 0);
+    const mins = match.info.gameDuration / 60;
+    const kda = p.deaths === 0 ? p.kills + p.assists : (p.kills + p.assists) / p.deaths;
+    const cur = map.get(p.championName) ?? { games: 0, wins: 0, kdaSum: 0, csMinSum: 0, visionSum: 0 };
+    map.set(p.championName, {
+      games: cur.games + 1,
+      wins: cur.wins + (p.win ? 1 : 0),
+      kdaSum: cur.kdaSum + kda,
+      csMinSum: cur.csMinSum + (mins > 0 ? cs / mins : 0),
+      visionSum: cur.visionSum + (p.visionScore ?? 0),
+    });
+  }
+
+  return [...map.entries()]
+    .filter(([, v]) => v.games >= 2)
+    .map(([championName, v]) => ({
+      championName,
+      games: v.games,
+      wins: v.wins,
+      winRate: Math.round((v.wins / v.games) * 100),
+      averageKda: Math.round((v.kdaSum / v.games) * 100) / 100,
+      avgCsPerMin: Math.round((v.csMinSum / v.games) * 10) / 10,
+      avgVisionScore: Math.round(v.visionSum / v.games),
+    }))
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 5);
 }

@@ -77,7 +77,9 @@ export function TierListClient({ payload }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Champion Tier List</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">Win Rate · Platinum+</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {payload.source === "meraki" ? "Pick Rate (win rate unavailable)" : "Win Rate · Platinum+"}
+          </p>
         </div>
         <span className="rounded-md border border-border px-2.5 py-1 font-mono text-xs text-muted-foreground">
           Patch {payload.patch}

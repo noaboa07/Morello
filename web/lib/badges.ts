@@ -161,6 +161,39 @@ export function getMatchBadges(match: MatchDTO, me: MatchParticipant): Badge[] {
   return dedupeBadges(badges).slice(0, 3);
 }
 
+export function computeCarryScore(match: MatchDTO, p: MatchParticipant): number {
+  const all = match.info.participants;
+  const maxDamage = Math.max(...all.map((x) => x.totalDamageDealtToChampions ?? 0), 1);
+  const maxGold = Math.max(...all.map((x) => x.goldEarned ?? 0), 1);
+  const maxCs = Math.max(
+    ...all.map((x) => x.totalMinionsKilled + (x.neutralMinionsKilled ?? 0)),
+    1
+  );
+  const maxVision = Math.max(...all.map((x) => x.visionScore ?? 0), 1);
+  const kdaOf = (x: MatchParticipant) =>
+    x.deaths === 0 ? x.kills + x.assists : (x.kills + x.assists) / x.deaths;
+  const maxKda = Math.max(...all.map(kdaOf), 1);
+
+  const damage = ((p.totalDamageDealtToChampions ?? 0) / maxDamage) * 30;
+  const gold = ((p.goldEarned ?? 0) / maxGold) * 20;
+  const kda = (kdaOf(p) / maxKda) * 25;
+  const cs = ((p.totalMinionsKilled + (p.neutralMinionsKilled ?? 0)) / maxCs) * 15;
+  const vision = ((p.visionScore ?? 0) / maxVision) * 10;
+
+  return Math.round(damage + gold + kda + cs + vision);
+}
+
+export function getGrade(
+  score: number,
+  isTopInGame: boolean
+): "S" | "GM" | "M" | "C" | null {
+  if (score >= 85 && isTopInGame) return "S";
+  if (score >= 85) return "GM";
+  if (score >= 70) return "M";
+  if (score >= 50) return "C";
+  return null;
+}
+
 export function damageShareForTeam(participants: MatchParticipant[]) {
   const max = Math.max(
     ...participants.map((p) => p.totalDamageDealtToChampions ?? 0),

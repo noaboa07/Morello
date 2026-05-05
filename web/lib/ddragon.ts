@@ -112,6 +112,10 @@ export function profileIconUrl(iconId: number, version: string) {
   return `${DDRAGON}/cdn/${version}/img/profileicon/${iconId}.png`;
 }
 
+export function runeIconUrl(iconPath: string): string {
+  return `${DDRAGON}/cdn/img/${iconPath}`;
+}
+
 // Community Dragon for rank emblems (Riot doesn't host them on ddragon)
 export function rankEmblemUrl(tier: string) {
   const t = tier.toLowerCase();

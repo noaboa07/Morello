@@ -76,7 +76,7 @@ async function loadTierList(): Promise<TierListPayload | { error: string }> {
       }
     }
 
-    return { patch: meraki.patch ?? "Latest", entries, version };
+    return { patch: meraki.patch ?? "Latest", entries, version, source: "meraki" };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { error: message };
