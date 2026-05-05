@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { championSquareUrl } from "@/lib/ddragon";
 import { Input } from "@/components/ui/input";
 import type { ChampionTierEntry, TierLabel, TierListPayload } from "@/lib/types";
@@ -44,6 +44,14 @@ interface Props {
 }
 
 export function TierListClient({ payload }: Props) {
+  useEffect(() => {
+    console.log('tierlist fetch starting')
+    fetch('https://axe.lolalytics.com/tierlist/1/?lane=default&tier=plat_plus&patch=current&region=all')
+      .then(r => { console.log('tierlist status:', r.status); return r.json() })
+      .then(d => console.log('tierlist data keys:', Object.keys(d)))
+      .catch(e => console.error('tierlist error:', e))
+  }, [])
+
   const [role, setRole] = useState<RoleFilter>("ALL");
   const [search, setSearch] = useState("");
 
