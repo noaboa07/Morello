@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { championSquareUrl } from "@/lib/ddragon";
 import { Input } from "@/components/ui/input";
 import type { ChampionTierEntry, TierLabel, TierListPayload } from "@/lib/types";
@@ -44,14 +44,6 @@ interface Props {
 }
 
 export function TierListClient({ payload }: Props) {
-  useEffect(() => {
-    console.log('tierlist fetch starting')
-    fetch('https://axe.lolalytics.com/tierlist/1/?lane=default&tier=plat_plus&patch=current&region=all')
-      .then(r => { console.log('tierlist status:', r.status); return r.json() })
-      .then(d => console.log('tierlist data keys:', Object.keys(d)))
-      .catch(e => console.error('tierlist error:', e))
-  }, [])
-
   const [role, setRole] = useState<RoleFilter>("ALL");
   const [search, setSearch] = useState("");
 
@@ -85,9 +77,7 @@ export function TierListClient({ payload }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Champion Tier List</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {payload.source === "meraki" ? "Pick Rate (win rate unavailable)" : "Win Rate · Platinum+"}
-          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Win Rate · Platinum+</p>
         </div>
         <span className="rounded-md border border-border px-2.5 py-1 font-mono text-xs text-muted-foreground">
           Patch {payload.patch}
