@@ -12,16 +12,16 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Morello | League of Legends Performance Analytics",
+    default: "Morello — League of Legends Coaching & Performance Analytics",
     template: "%s | Morello",
   },
   description:
-    "Search any Riot ID to explore ranked history, live games, match breakdowns, champion trends, and coaching-level analytics.",
+    "Understand why you lose, track your improvement, and climb faster with Morello's AI-powered match analysis.",
   applicationName: "Morello",
   openGraph: {
     title: "Morello",
     description:
-      "Search any Riot ID to explore ranked history, live games, match breakdowns, and champion analytics.",
+      "Understand why you lose, track your improvement, and climb faster with Morello's AI-powered match analysis.",
     siteName: "Morello",
     type: "website",
   },
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Morello",
     description:
-      "League of Legends performance analytics — ranked stats, live game detection, and explainable match insights.",
+      "Coach-level League of Legends match analysis — ranked stats, live game detection, and explainable match breakdowns.",
   },
 };
 

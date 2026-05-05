@@ -4,9 +4,9 @@ import { RecentSearches } from "@/components/RecentSearches";
 import { SearchBar } from "@/components/SearchBar";
 
 const EXAMPLE_SEARCHES = [
-  { label: "Faker", value: "Faker#KR1", platform: "kr" },
-  { label: "Doublelift", value: "Doublelift#NA1", platform: "na1" },
-  { label: "Caps", value: "Caps#EUW", platform: "euw1" },
+  { label: "Hide on bush", value: "Hide on bush#KR1", platform: "kr" },
+  { label: "Caedrel",      value: "Caedrel#EUW",      platform: "euw1" },
+  { label: "CoreJJ",       value: "CoreJJ#NA1",        platform: "na1" },
 ];
 
 export const metadata: Metadata = {
@@ -21,20 +21,20 @@ export default function HomePage() {
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="space-y-6">
         <div className="space-y-2">
-          <div className="eyebrow">League of Legends · Stats & Scouting</div>
+          <div className="eyebrow">League of Legends · Coaching & Improvement</div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Look up any summoner.
+            Understand your losses. Fix your mistakes. Climb faster.
           </h1>
           <p className="text-base text-muted-foreground leading-relaxed">
-            Ranked stats, live game detection, explainable match breakdowns,
-            champion trends, and coaching-level analysis — all from Riot match data.
+            Get a coaching breakdown of every game you play — see what went wrong,
+            what held up, and exactly what to work on next.
           </p>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4">
-          <SearchBar helperText="Enter a Riot ID as GameName#TAG and choose your region." />
+          <SearchBar helperText="Search your Riot ID to get a personalized coaching breakdown of your recent games." />
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="eyebrow">Try</span>
+            <span className="eyebrow">Learn from the pros</span>
             {EXAMPLE_SEARCHES.map((ex) => (
               <Link
                 key={ex.value}
@@ -61,7 +61,7 @@ export default function HomePage() {
 
       {/* ── What the app surfaces ─────────────────────────────────────────── */}
       <section className="space-y-4">
-        <div className="eyebrow">What you get</div>
+        <div className="eyebrow">What you'll learn</div>
         <div className="grid gap-3 sm:grid-cols-2">
           {FEATURES.map((f) => (
             <div
@@ -83,26 +83,26 @@ export default function HomePage() {
 const FEATURES = [
   {
     title: "Ranked overview",
-    desc: "Solo/Duo and Flex rank, LP progress, win rate, and recent form in one view.",
+    desc: "Your rank, LP trend, and win rate — everything you need to measure real progress.",
   },
   {
     title: "Match history",
-    desc: "Expandable match cards with per-game coaching analysis — what hurt, what held up, what to fix.",
+    desc: "Per-game coaching breakdown: what hurt your performance, what held up, and what to fix next game.",
   },
   {
     title: "Champion & role analysis",
-    desc: "Champion pool, role splits, matchup tendencies, and game-length performance.",
+    desc: "Your champion pool, preferred roles, and matchup tendencies — find where you're leaking LP.",
   },
   {
     title: "Live game detection",
-    desc: "Polls for an active game every 30 seconds and shows mode, champion, and elapsed time.",
+    desc: "Know when you're in a live game — mode, champion, and time elapsed, auto-refreshed every 30 seconds.",
   },
   {
     title: "Win vs loss comparison",
-    desc: "Side-by-side stats showing how KDA, CS, vision, and objective pressure shift between outcomes.",
+    desc: "Side-by-side KDA, CS, vision, and objectives — see the exact gap between your wins and losses.",
   },
   {
     title: "Compare mode",
-    desc: "Search a second summoner and compare recent form, rank, and champion pool side by side.",
+    desc: "Stack your profile against any other summoner to benchmark rank, champion pool, and recent form.",
   },
 ];

@@ -469,15 +469,37 @@ export function deriveMatchupInsights(matches: MatchDTO[], puuid: string) {
     }))
     .filter((entry) => entry.games >= 2);
 
+  const best = repeatedEntries
+    .slice()
+    .sort((a, b) => (b.winRate !== a.winRate ? b.winRate - a.winRate : b.averageKda - a.averageKda))
+    .slice(0, 3);
+  const worst = repeatedEntries
+    .slice()
+    .sort((a, b) => (a.winRate !== b.winRate ? a.winRate - b.winRate : a.averageKda - b.averageKda))
+    .slice(0, 3);
+
+  // For any champion appearing in both lists, keep it only in the list
+  // with the stronger signal (distance from 50% win rate). Ties go to best.
+  const signal = (e: MatchupInsight) => Math.abs(e.winRate - 50);
+  const sharedChamps = new Set(
+    best
+      .filter((b) => worst.some((w) => w.championName === b.championName))
+      .map((b) => b.championName)
+  );
+  const bestDeduped = best.filter((b) => {
+    if (!sharedChamps.has(b.championName)) return true;
+    const inWorst = worst.find((w) => w.championName === b.championName)!;
+    return signal(b) >= signal(inWorst);
+  });
+  const worstDeduped = worst.filter((w) => {
+    if (!sharedChamps.has(w.championName)) return true;
+    const inBest = best.find((b) => b.championName === w.championName)!;
+    return signal(w) > signal(inBest);
+  });
+
   return {
-    best: repeatedEntries
-      .slice()
-      .sort((a, b) => (b.winRate !== a.winRate ? b.winRate - a.winRate : b.averageKda - a.averageKda))
-      .slice(0, 3),
-    worst: repeatedEntries
-      .slice()
-      .sort((a, b) => (a.winRate !== b.winRate ? a.winRate - b.winRate : a.averageKda - b.averageKda))
-      .slice(0, 3),
+    best: bestDeduped,
+    worst: worstDeduped,
     fallbackUsed: matches.some((match) => {
       const me = getMyParticipant(match, puuid);
       return me ? !hasReliableLaneOpponent(match, me) : false;
@@ -585,6 +607,176 @@ export function deriveProfileOverview(
     strongestRole,
     summaryLine,
   };
+}
+
+// ── High-elo coaching analytics ───────────────────────────────────────────────
+
+export interface DeathReviewSummary {
+  totalDeaths: number;
+  avgDeathsPerGame: number;
+  peakPhase: "early" | "mid" | "late";
+  peakPhaseLabel: string;
+  patternLine: string;
+}
+
+export interface ConsistencyScore {
+  score: number;
+  interpretation: string;
+  kdaVariance: number;
+  csVariance: number;
+  visionVariance: number;
+}
+
+export interface WinCondition {
+  condition: string;
+  winPct: number;
+  sampleSize: number;
+}
+
+export interface WinConditionFingerprint {
+  conditions: WinCondition[];
+}
+
+export function deriveDeathReview(matches: MatchDTO[], puuid: string): DeathReviewSummary | null {
+  const participants = getVisibleParticipants(matches, puuid);
+  if (participants.length === 0) return null;
+
+  const totalDeaths = participants.reduce((s, p) => s + p.deaths, 0);
+  const avgDeathsPerGame = totalDeaths / participants.length;
+
+  // Infer peak death phase by comparing deaths-per-game across game-length buckets.
+  // Short games (<25 min) skew toward early-phase deaths; long games (>35 min) toward late.
+  const short = matches.filter((m) => m.info.gameDuration < 25 * 60);
+  const medium = matches.filter(
+    (m) => m.info.gameDuration >= 25 * 60 && m.info.gameDuration <= 35 * 60
+  );
+  const long = matches.filter((m) => m.info.gameDuration > 35 * 60);
+
+  const dpg = (bucket: MatchDTO[]) => {
+    if (bucket.length === 0) return 0;
+    const d = bucket.reduce((s, m) => {
+      const p = getMyParticipant(m, puuid);
+      return s + (p?.deaths ?? 0);
+    }, 0);
+    return d / bucket.length;
+  };
+
+  const allPhases: Array<{ key: "early" | "mid" | "late"; label: string; dpg: number }> = [
+    { key: "early" as const, label: "early game (<25 min)", dpg: dpg(short) },
+    { key: "mid" as const, label: "mid game (25–35 min)", dpg: dpg(medium) },
+    { key: "late" as const, label: "late game (>35 min)", dpg: dpg(long) },
+  ];
+  const phases = allPhases.filter((p) => p.dpg > 0);
+
+  const peak = phases.length > 0
+    ? phases.reduce((a, b) => (b.dpg > a.dpg ? b : a))
+    : { key: "mid" as const, label: "mid game" };
+
+  let patternLine = `Average ${avgDeathsPerGame.toFixed(1)} deaths per game`;
+  if (avgDeathsPerGame > 5) {
+    patternLine += ` — prioritise safer positioning in ${peak.label}.`;
+  } else if (avgDeathsPerGame > 3) {
+    patternLine += ` — death count is manageable; focus on ${peak.label} decision-making.`;
+  } else {
+    patternLine += ` — strong death avoidance; maintain discipline in ${peak.label}.`;
+  }
+
+  return { totalDeaths, avgDeathsPerGame, peakPhase: peak.key, peakPhaseLabel: peak.label, patternLine };
+}
+
+export function deriveConsistencyScore(matches: MatchDTO[], puuid: string): ConsistencyScore | null {
+  if (matches.length < 5) return null;
+
+  const values = matches
+    .map((m) => {
+      const p = getMyParticipant(m, puuid);
+      if (!p) return null;
+      const gameMins = m.info.gameDuration / 60;
+      const cs = totalCsForParticipant(p);
+      return {
+        kda: ratio(p.kills + p.assists, p.deaths),
+        csPerMin: gameMins > 0 ? cs / gameMins : 0,
+        vision: p.visionScore,
+      };
+    })
+    .filter((v): v is { kda: number; csPerMin: number; vision: number } => v !== null);
+
+  if (values.length < 3) return null;
+
+  const cv = (arr: number[]) => {
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    if (mean === 0) return 0;
+    const variance = arr.reduce((s, v) => s + (v - mean) ** 2, 0) / arr.length;
+    return Math.sqrt(variance) / mean;
+  };
+
+  const kdaCV = cv(values.map((v) => v.kda));
+  const csCV = cv(values.map((v) => v.csPerMin));
+  const visionCV = cv(values.map((v) => v.vision));
+  const avgCV = (kdaCV + csCV + visionCV) / 3;
+  const score = Math.max(0, Math.min(100, Math.round(100 - avgCV * 100)));
+
+  let interpretation: string;
+  if (score >= 70) {
+    interpretation = "Consistent foundation — game-to-game variance is low. Focus on raising your ceiling.";
+  } else if (score >= 45) {
+    interpretation = "Moderate consistency — some variance across games. Stabilising one metric could unlock a higher floor.";
+  } else {
+    interpretation = "Streaky player — big highs and big lows. Narrowing variance will improve your average result.";
+  }
+
+  return { score, interpretation, kdaVariance: kdaCV, csVariance: csCV, visionVariance: visionCV };
+}
+
+export function deriveWinConditionFingerprint(
+  matches: MatchDTO[],
+  puuid: string
+): WinConditionFingerprint | null {
+  if (matches.length < 5) return null;
+
+  type Condition = { label: string; test: (p: MatchParticipant, m: MatchDTO) => boolean };
+  const gameMins = (m: MatchDTO) => m.info.gameDuration / 60;
+
+  const candidates: Condition[] = [
+    { label: "KDA > 3.0", test: (p) => ratio(p.kills + p.assists, p.deaths) > 3 },
+    { label: "KDA > 2.0", test: (p) => ratio(p.kills + p.assists, p.deaths) > 2 },
+    { label: "Fewer than 3 deaths", test: (p) => p.deaths < 3 },
+    { label: "Fewer than 5 deaths", test: (p) => p.deaths < 5 },
+    {
+      label: "CS/min above 6",
+      test: (p, m) => gameMins(m) > 0 && totalCsForParticipant(p) / gameMins(m) > 6,
+    },
+    {
+      label: "CS/min above 7",
+      test: (p, m) => gameMins(m) > 0 && totalCsForParticipant(p) / gameMins(m) > 7,
+    },
+    {
+      label: "Kill participation above 60%",
+      test: (p, m) => killParticipation(m, p) > 0.6,
+    },
+    {
+      label: "Vision score above 20",
+      test: (p) => p.visionScore > 20,
+    },
+  ];
+
+  const conditions: WinCondition[] = candidates
+    .map(({ label, test }) => {
+      const subset = matches.filter((m) => {
+        const p = getMyParticipant(m, puuid);
+        return p ? test(p, m) : false;
+      });
+      if (subset.length < 3) return null;
+      const wins = subset.filter((m) => getMyParticipant(m, puuid)?.win).length;
+      const winPct = Math.round((wins / subset.length) * 100);
+      if (Math.abs(winPct - 50) < 15) return null;
+      return { condition: label, winPct, sampleSize: subset.length };
+    })
+    .filter((c): c is WinCondition => c !== null)
+    .sort((a, b) => Math.abs(b.winPct - 50) - Math.abs(a.winPct - 50))
+    .slice(0, 3);
+
+  return conditions.length > 0 ? { conditions } : null;
 }
 
 function getVisibleParticipants(matches: MatchDTO[], puuid: string) {

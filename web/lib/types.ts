@@ -63,11 +63,37 @@ export interface MatchParticipant {
   item5: number;
   item6: number;
   totalDamageDealtToChampions: number;
+  totalDamageTaken?: number;
+  totalHeal?: number;
+  totalDamageShieldedOnTeammates?: number;
+  timeCCingOthers?: number;
   damageDealtToObjectives?: number;
   turretKills?: number;
   inhibitorKills?: number;
+  wardsPlaced?: number;
+  wardsKilled?: number;
+  firstBloodKill?: boolean;
+  firstBloodAssist?: boolean;
   teamPosition: string;
   largestMultiKill: number;
+}
+
+export type TierLabel = "S" | "A" | "B" | "C" | "D";
+
+export interface ChampionTierEntry {
+  championId: string;
+  role: string;
+  tier: TierLabel;
+  winRate: number;
+  pickRate: number;
+  banRate: number;
+  games: number;
+}
+
+export interface TierListPayload {
+  patch: string;
+  version: string;
+  entries: ChampionTierEntry[];
 }
 
 export interface MatchDTO {

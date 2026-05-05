@@ -5,6 +5,8 @@ import { ChampionMatchupInsightsCard } from "@/components/ChampionMatchupInsight
 import { ChampionMasteryTrendCard } from "@/components/ChampionMasteryTrendCard";
 import { ChampionStats } from "@/components/ChampionStats";
 import { CompareSummonersCard } from "@/components/CompareSummonersCard";
+import { ConsistencyScoreCard } from "@/components/ConsistencyScoreCard";
+import { DeathReviewCard } from "@/components/DeathReviewCard";
 import { GameLengthPerformanceCard } from "@/components/GameLengthPerformanceCard";
 import { MatchCard } from "@/components/MatchCard";
 import { RecentChampionPoolCard } from "@/components/RecentChampionPoolCard";
@@ -12,19 +14,23 @@ import { RolePerformanceCard } from "@/components/RolePerformanceCard";
 import { ScoutingReportCard } from "@/components/ScoutingReportCard";
 import { ShareProfileSnapshotCard } from "@/components/ShareProfileSnapshotCard";
 import { KdaSparkline } from "@/components/Sparkline";
+import { WinConditionFingerprintCard } from "@/components/WinConditionFingerprintCard";
 import { WinLossAnalysisCard } from "@/components/WinLossAnalysisCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   QUEUE_FILTER_OPTIONS,
+  deriveChampionTrends,
+  deriveConsistencyScore,
+  deriveDeathReview,
+  deriveGameLengthBuckets,
   deriveMatchupInsights,
   deriveProfileOverview,
   deriveRoleInsights,
   deriveScoutingReport,
   deriveSessionInsights,
+  deriveWinConditionFingerprint,
   deriveWinLossComparison,
-  deriveGameLengthBuckets,
-  deriveChampionTrends,
   matchesQueueFilter,
   queueFilterSummary,
   type QueueFilterKey,
@@ -99,6 +105,37 @@ export function MatchHistory({
     () => deriveChampionTrends(visibleMatches, puuid),
     [visibleMatches, puuid]
   );
+  const deathReview = useMemo(
+    () => deriveDeathReview(visibleMatches, puuid),
+    [visibleMatches, puuid]
+  );
+  const consistencyScore = useMemo(
+    () => deriveConsistencyScore(visibleMatches, puuid),
+    [visibleMatches, puuid]
+  );
+  const winConditions = useMemo(
+    () => deriveWinConditionFingerprint(visibleMatches, puuid),
+    [visibleMatches, puuid]
+  );
+  const playerAverages = useMemo(() => {
+    if (visibleMatches.length === 0) return undefined;
+    let totalDeaths = 0;
+    let totalVision = 0;
+    let count = 0;
+    for (const match of visibleMatches) {
+      const me = match.info.participants.find((p) => p.puuid === puuid);
+      if (!me) continue;
+      totalDeaths += me.deaths;
+      totalVision += me.visionScore;
+      count++;
+    }
+    if (count === 0) return undefined;
+    return {
+      csPerMin: insights.averageCsPerMinute,
+      deaths: totalDeaths / count,
+      visionScore: totalVision / count,
+    };
+  }, [visibleMatches, puuid, insights.averageCsPerMinute]);
 
   const loadMore = async () => {
     setLoadingMore(true);
@@ -177,6 +214,7 @@ export function MatchHistory({
                     version={version}
                     spellMap={spellMap}
                     itemMap={itemMap}
+                    playerAverages={playerAverages}
                   />
                 ))}
               </div>
@@ -228,6 +266,15 @@ export function MatchHistory({
           <RecentChampionPoolCard champions={insights.championPool} version={version} />
         </div>
         <ScoutingReportCard insights={scoutingReport} />
+
+        {/* High-elo coaching widgets — require ≥5 matches to derive signal */}
+        {(deathReview || consistencyScore || winConditions) && (
+          <div className="grid gap-4 xl:grid-cols-3">
+            {deathReview && <DeathReviewCard summary={deathReview} />}
+            {consistencyScore && <ConsistencyScoreCard data={consistencyScore} />}
+            {winConditions && <WinConditionFingerprintCard data={winConditions} />}
+          </div>
+        )}
       </div>
 
       {/* ── Tools — compare + share, lowest priority ─────────────────────────── */}
