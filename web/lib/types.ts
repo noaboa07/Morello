@@ -185,7 +185,7 @@ export interface TierListPayload {
   patch: string;
   version: string;
   entries: ChampionTierEntry[];
-  source: "ugg" | "lolalytics" | "meraki";
+  source: "meraki";
 }
 
 export interface ChallengerLiveGame {

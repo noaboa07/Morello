@@ -70,10 +70,9 @@ Each match card expands into five lazy-loaded tabs:
 - **Win Condition Fingerprint** — identifies which stat thresholds (KDA > 3.0, deaths < 3, CS/min > 6, kill participation > 60%, etc.) correlate most strongly with wins and losses across the visible match window
 
 ### Champion Tier List
-- Sourced from **Lolalytics CDN** — win rate, pick rate, and ban rate aggregated from millions of Platinum+ games per patch
-- Tiered by actual win rate: S (>52%), A (50–52%), B (48–50%), C (46–48%), D (<46%)
-- Filterable by role; champion search; sorted win rate descending within each tier
-- Falls back to **Meraki Analytics** (pick-rate tiers only) if Lolalytics is unreachable; cached 1 hour
+- Sourced from **Meraki Analytics CDN** — pick rate per role aggregated from recent patches; no API key required
+- Tiered by pick rate: S (≥4%), A (≥2%), B (≥1%), C (≥0.4%), D (<0.4%)
+- Filterable by role; champion search; sorted pick rate descending within each tier; cached 1 hour
 
 ---
 
@@ -92,8 +91,7 @@ Each match card expands into five lazy-loaded tabs:
 | Charts | recharts | Time-series line charts in the Metrics tab |
 | Match & ranked data | Riot Games API v5 | Account lookup, summoner, ranked, match history, spectator, match timeline |
 | Static assets | Data Dragon + Community Dragon | Champion icons, item icons, spell icons, rank emblems, rune icons, minimap |
-| Tier list (primary) | Lolalytics CDN (`axe.lolalytics.com`) | Win/pick/ban rates, Plat+, no API key required, 1-hour cache |
-| Tier list (fallback) | Meraki Analytics CDN | Pick-rate only; activates when Lolalytics is unreachable |
+| Tier list | Meraki Analytics CDN | Pick-rate per role, no API key required, 1-hour cache |
 
 ---
 
@@ -113,7 +111,7 @@ web/
       live/[platform]/[puuid]         # spectator polling route
       ddragon/version/                # Data Dragon latest version resolution
       ddragon/runes/                  # runesReforged.json proxy → RuneTree[]
-      tierlist/                       # Lolalytics → Meraki fallback → ChampionTierEntry[]
+      tierlist/                       # Meraki Analytics → ChampionTierEntry[]
     tierlist/
       page.tsx                        # tier list SSR entry point
       loading.tsx                     # streaming skeleton
