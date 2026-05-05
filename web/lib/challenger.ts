@@ -18,7 +18,24 @@ interface SpectatorParticipant {
 export async function fetchChallengerFeed(): Promise<ChallengerLiveGame[]> {
   try {
     const league = await getChallengerLeague("RANKED_SOLO_5x5", PLATFORM);
-    const entries: LeagueEntry[] = league.entries ?? [];
+
+    // Log raw response shape for Vercel diagnostics
+    const rawEntries: unknown[] = league.entries ?? league.data ?? [];
+    const firstRaw = rawEntries[0];
+    console.log(
+      "[challenger] league top-level keys:", Object.keys(league as object),
+      "| entries count:", rawEntries.length,
+      "| first entry keys:", firstRaw ? Object.keys(firstRaw as object) : "none",
+      "| first entry sample:", JSON.stringify(firstRaw).slice(0, 300)
+    );
+
+    // summonerId in LeagueItemDTO IS the encrypted summoner ID — try multiple field names
+    // in case the API response uses a different key than expected.
+    const entries: LeagueEntry[] = (rawEntries as Record<string, unknown>[]).map((e) => ({
+      summonerId: (e.summonerId ?? e.encryptedSummonerId ?? "") as string,
+      summonerName: (e.summonerName ?? e.riotIdGameName ?? "") as string,
+      leaguePoints: (e.leaguePoints ?? 0) as number,
+    }));
 
     const top50 = [...entries]
       .sort((a, b) => b.leaguePoints - a.leaguePoints)
